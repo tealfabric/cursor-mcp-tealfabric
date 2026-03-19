@@ -81,7 +81,7 @@ Add the MCP server in Cursor so the AI can call Tealfabric tools.
       "args": ["/ABSOLUTE/PATH/TO/mcp-server-tealfabric/dist/index.js"],
       "env": {
         "TEALFABRIC_API_KEY": "YOUR_API_KEY",
-        "TEALFABRIC_API_URL": "https://dev.tealfabric.io"
+        "TEALFABRIC_API_URL": "https://tealfabric.io"
       }
     }
   }
@@ -142,7 +142,7 @@ Full API and platform behaviour are documented at [https://tealfabric.io/docs](h
 | Variable | Required | Default | Description |
 |---------|----------|---------|-------------|
 | `TEALFABRIC_API_KEY` | Yes | — | Tealfabric API key. Sent as `X-API-Key`. |
-| `TEALFABRIC_API_URL` | No | `https://dev.tealfabric.io` | Base URL of the Tealfabric API (no trailing slash). |
+| `TEALFABRIC_API_URL` | No | `https://tealfabric.io` | Base URL of the Tealfabric API (no trailing slash). |
 
 Set these in Cursor’s MCP server config (`env`), or in the shell when running `node dist/index.js` manually.
 
@@ -151,7 +151,7 @@ Set these in Cursor’s MCP server config (`env`), or in the shell when running 
 ## 8. Security and API keys
 
 - **Do not commit** real API keys. Prefer Cursor’s MCP UI or a local `mcp.json` that is gitignored.
-- API keys are **tenant- and user-scoped** in Tealfabric; restrict scopes if the platform supports it.
+- API keys are **tenant- and user-scoped** in Tealfabric; restrict scopes as the platform supports them.
 - The connector only uses **HTTPS** and does not log the key; it sends it only in the `X-API-Key` header to `TEALFABRIC_API_URL`.
 
 ---

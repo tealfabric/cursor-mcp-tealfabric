@@ -4,7 +4,7 @@
  */
 
 const getBaseUrl = (): string => {
-  const url = process.env.TEALFABRIC_API_URL || "https://dev.tealfabric.io";
+  const url = process.env.TEALFABRIC_API_URL || "https://tealfabric.io";
   return url.replace(/\/$/, "");
 };
 

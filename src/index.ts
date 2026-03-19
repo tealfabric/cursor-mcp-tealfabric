@@ -5,13 +5,13 @@
  * Exposes tools: list webapps, get/update/publish webapp, list processes/steps,
  * get process/step, execute process.
  *
- * Env: TEALFABRIC_API_KEY (required), TEALFABRIC_API_URL (optional, default https://dev.tealfabric.io)
+ * Env: TEALFABRIC_API_KEY (required), TEALFABRIC_API_URL (optional, default https://tealfabric.io)
  *
  * Cursor config (.cursor/mcp.json):
  *   "tealfabric": {
  *     "command": "node",
  *     "args": ["/absolute/path/to/mcp-server-tealfabric/dist/index.js"],
- *     "env": { "TEALFABRIC_API_KEY": "tf_live_...", "TEALFABRIC_API_URL": "https://dev.tealfabric.io" }
+ *     "env": { "TEALFABRIC_API_KEY": "tf_live_...", "TEALFABRIC_API_URL": "https://tealfabric.io" }
  *   }
  */
 
