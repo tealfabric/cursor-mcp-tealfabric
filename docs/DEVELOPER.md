@@ -32,6 +32,7 @@ The Tealfabric Cursor Connector is an **MCP (Model Context Protocol) server** th
 - **Create** and **update** webapps (e.g. `page_content`, name)
 - **Publish** webapps
 - **Execute** ProcessFlow processes (with optional input)
+- **List, upload, move, delete** documents (package files for delivery)
 
 The server is **standalone**: it only depends on Node.js, npm packages (`@modelcontextprotocol/sdk`, `zod`), and the Tealfabric API. It does not depend on the Tealfabric codebase.
 
@@ -111,6 +112,11 @@ All tools return JSON (or error text) in MCP content. Parameters are validated w
 | `tealfabric_list_process_steps` | List steps of a process | `process_id` |
 | `tealfabric_get_process_step` | Get one process step by step_id | `step_id` |
 | `tealfabric_execute_process` | Execute a process | `process_id`, `input` (optional object) |
+| `tealfabric_list_documents` | List documents in a directory | `path` (optional), `tenant_id` (optional) |
+| `tealfabric_get_document_metadata` | Get file metadata | `file_path`, `tenant_id` (optional) |
+| `tealfabric_upload_document` | Upload a file (e.g. built package) | `destination_path`, `file_path`, `tenant_id` (optional) |
+| `tealfabric_move_document` | Move or rename file/directory | `old_path`, `new_path`, `tenant_id` (optional) |
+| `tealfabric_delete_document` | Delete file or directory | `path`, `tenant_id` (optional) |
 
 For WebApp and ProcessFlow concepts (what a webapp, process, or step is), see [https://tealfabric.io/docs](https://tealfabric.io/docs) (e.g. Process Automation, WebApps).
 
@@ -132,8 +138,13 @@ The connector calls the Tealfabric REST API under the hood. All requests use the
 | `tealfabric_list_process_steps` | GET | `/api/v1/processflow?action=steps&process_id={id}` |
 | `tealfabric_get_process_step` | GET | `/api/v1/processflow?action=step&step_id={id}` |
 | `tealfabric_execute_process` | POST | `/api/v1/processflow?action=execute-process` (body: `process_id`, `input`) |
+| `tealfabric_list_documents` | GET | `/api/v1/documents?action=list` (+ optional `path`, `tenant_id`) |
+| `tealfabric_get_document_metadata` | GET | `/api/v1/documents?action=metadata&file_path={path}` |
+| `tealfabric_upload_document` | POST | `/api/v1/documents?action=upload` (multipart: `destination_path`, `file`) |
+| `tealfabric_move_document` | PUT | `/api/v1/documents?action=move` (body: `old_path`, `new_path`) |
+| `tealfabric_delete_document` | DELETE | `/api/v1/documents?action=delete&path={path}` |
 
-Full API and platform behaviour are documented at [https://tealfabric.io/docs](https://tealfabric.io/docs) (ProcessFlow API, WebApps, etc.).
+Full API and platform behaviour are documented at [https://tealfabric.io/docs](https://tealfabric.io/docs) (ProcessFlow API, WebApps, Documents, etc.).
 
 ---
 
@@ -174,7 +185,7 @@ mcp-server-tealfabric/
 ```
 
 - **`src/index.ts`** — Creates the MCP server, registers tools with Zod input schemas, connects `StdioServerTransport`, and forwards tool calls to `client.ts`.
-- **`src/client.ts`** — Exports `tealfabric` with methods for each API (listWebapps, getWebapp, createWebapp, updateWebapp, publishWebapp, listProcesses, getProcess, listProcessSteps, getProcessStep, executeProcess). Uses `TEALFABRIC_API_KEY` and `TEALFABRIC_API_URL`.
+- **`src/client.ts`** — Exports `tealfabric` with methods for each API (webapps, processflow, documents). Uses `TEALFABRIC_API_KEY` and `TEALFABRIC_API_URL`.
 
 ---
 

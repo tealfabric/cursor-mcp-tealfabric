@@ -3,6 +3,9 @@
  * Uses TEALFABRIC_API_KEY (X-API-Key or Authorization: Bearer) and TEALFABRIC_API_URL.
  */
 
+import { readFile } from "fs/promises";
+import { basename } from "path";
+
 const getBaseUrl = (): string => {
   const url = process.env.TEALFABRIC_API_URL || "https://tealfabric.io";
   return url.replace(/\/$/, "");
@@ -17,6 +20,14 @@ const getHeaders = (): Record<string, string> => {
     "Content-Type": "application/json",
     "X-API-Key": key,
   };
+};
+
+const getApiKeyHeaders = (): Record<string, string> => {
+  const key = process.env.TEALFABRIC_API_KEY;
+  if (!key) {
+    throw new Error("TEALFABRIC_API_KEY is not set");
+  }
+  return { "X-API-Key": key };
 };
 
 async function request<T>(
@@ -142,5 +153,78 @@ export const tealfabric = {
       "/api/v1/processflow?action=execute-process",
       { process_id: processId, input: input ?? {} }
     );
+  },
+
+  // --- Documents (package files for delivery) ---
+  async listDocuments(params?: { path?: string; tenant_id?: string }) {
+    const q = new URLSearchParams({ action: "list" });
+    if (params?.path) q.set("path", params.path);
+    if (params?.tenant_id) q.set("tenant_id", params.tenant_id);
+    return request<{ success: boolean; data?: unknown }>(
+      "GET",
+      `/api/v1/documents?${q.toString()}`
+    );
+  },
+
+  async getDocumentMetadata(params: { file_path: string; tenant_id?: string }) {
+    const q = new URLSearchParams({ action: "metadata", file_path: params.file_path });
+    if (params.tenant_id) q.set("tenant_id", params.tenant_id);
+    return request<{ success: boolean; data?: unknown }>(
+      "GET",
+      `/api/v1/documents?${q.toString()}`
+    );
+  },
+
+  async uploadDocument(params: {
+    destination_path: string;
+    file_path: string;
+    tenant_id?: string;
+  }) {
+    const base = getBaseUrl();
+    const q = new URLSearchParams({ action: "upload" });
+    if (params.tenant_id) q.set("tenant_id", params.tenant_id);
+    const url = `${base}/api/v1/documents?${q.toString()}`;
+
+    const fileBuffer = await readFile(params.file_path);
+    const filename = basename(params.file_path);
+    const formData = new FormData();
+    formData.append("destination_path", params.destination_path);
+    formData.append("file", new Blob([fileBuffer]), filename);
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: getApiKeyHeaders(),
+      body: formData,
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`Tealfabric API ${res.status}: ${text || res.statusText}`);
+    }
+    if (!text) return { success: true };
+    try {
+      return JSON.parse(text) as { success: boolean; data?: unknown };
+    } catch {
+      return { success: true, data: text };
+    }
+  },
+
+  async moveDocument(params: {
+    old_path: string;
+    new_path: string;
+    tenant_id?: string;
+  }) {
+    const q = new URLSearchParams({ action: "move" });
+    if (params.tenant_id) q.set("tenant_id", params.tenant_id);
+    return request<{ success: boolean; data?: unknown }>(
+      "PUT",
+      `/api/v1/documents?${q.toString()}`,
+      { old_path: params.old_path, new_path: params.new_path }
+    );
+  },
+
+  async deleteDocument(params: { path: string; tenant_id?: string }) {
+    const q = new URLSearchParams({ action: "delete", path: params.path });
+    if (params.tenant_id) q.set("tenant_id", params.tenant_id);
+    return request<{ success: boolean }>("DELETE", `/api/v1/documents?${q.toString()}`);
   },
 };
