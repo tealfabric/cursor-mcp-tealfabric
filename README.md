@@ -10,7 +10,7 @@ MCP (Model Context Protocol) server that connects **Cursor IDE** to the **Tealfa
 ## Install
 
 ```bash
-cd mcp-server-tealfabric
+cd cursor-mcp-tealfabric
 npm install
 npm run build
 ```
@@ -27,10 +27,10 @@ npm run build
   "mcpServers": {
     "tealfabric": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/dev.tealfabric.io/mcp-server-tealfabric/dist/index.js"],
+      "args": ["/ABSOLUTE/PATH/TO/cursor-mcp-tealfabric/dist/index.js"],
       "env": {
         "TEALFABRIC_API_KEY": "YOUR_API_KEY_HERE",
-        "TEALFABRIC_API_URL": "https://dev.tealfabric.io"
+        "TEALFABRIC_API_URL": "https://tealfabric.io"
       }
     }
   }
@@ -40,7 +40,7 @@ npm run build
 Replace:
 
 - `YOUR_API_KEY_HERE` with your Tealfabric API key (e.g. `tf_live_...`).
-- `/ABSOLUTE/PATH/TO/dev.tealfabric.io/...` with the real path to this repo (e.g. `/Users/jarlah/src/dev.tealfabric.io/mcp-server-tealfabric/dist/index.js`).
+- `/ABSOLUTE/PATH/TO/cursor-mcp-tealfabric/...` with the real path to this repo (e.g. `/Users/username/src/cursor-mcp-tealfabric/dist/index.js`).
 
 3. **Restart Cursor** so it picks up the new server.
 
@@ -64,7 +64,7 @@ Replace:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `TEALFABRIC_API_KEY` | Yes | — | Tealfabric API key (X-API-Key / Bearer) |
-| `TEALFABRIC_API_URL` | No | `https://dev.tealfabric.io` | Tealfabric base URL |
+| `TEALFABRIC_API_URL` | No | `https://tealfabric.io` | Tealfabric base URL |
 
 ## Security
 
