@@ -34,6 +34,145 @@ const server = new McpServer(
   { capabilities: { tools: {} } }
 );
 
+// --- Connectors ---
+server.registerTool(
+  "tealfabric_list_connectors",
+  {
+    description: "List Tealfabric connectors, get a specific connector, or fetch connector parameters.",
+    inputSchema: z.object({
+      action: z.enum(["get", "parameters"]).optional().describe("Optional action; omit to list all"),
+      connector_id: z.string().optional().describe("Connector ID (for action=get when supported)"),
+    }),
+  },
+  async ({ action, connector_id }) => {
+    try {
+      const out = await tealfabric.listConnectors({ action, connector_id });
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_test_connector",
+  {
+    description: "Test a connector configuration payload against the Tealfabric connectors test endpoint.",
+    inputSchema: z.object({
+      payload: z
+        .record(z.unknown())
+        .describe("Connector configuration payload expected by the selected connector"),
+    }),
+  },
+  async ({ payload }) => {
+    try {
+      const out = await tealfabric.testConnector(payload);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_get_connector_oauth2_required",
+  {
+    description: "Check whether a connector requires OAuth2 authentication.",
+    inputSchema: z.object({
+      connector_id: z.string().describe("Connector ID"),
+    }),
+  },
+  async ({ connector_id }) => {
+    try {
+      const out = await tealfabric.getConnectorOAuth2Required(connector_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+// --- Integrations ---
+server.registerTool(
+  "tealfabric_list_integrations",
+  {
+    description:
+      "List integrations or query integration details/status/statistics/execution history via action filters.",
+    inputSchema: z.object({
+      action: z
+        .enum(["get", "statistics", "test", "status", "execution-history"])
+        .optional()
+        .describe("Optional action; omit to list all integrations"),
+      integration_id: z.string().optional().describe("Integration ID (for get/test/execution-history)"),
+      execution_id: z.string().optional().describe("Execution ID (for status action)"),
+      limit: z.number().int().optional().describe("Limit for execution-history action"),
+      search: z.string().optional(),
+      type: z.string().optional(),
+      status: z.string().optional(),
+      is_active: z.union([z.literal(0), z.literal(1)]).optional().describe("1=enabled, 0=disabled"),
+      page: z.number().int().min(1).optional(),
+      items_per_page: z.union([z.literal(10), z.literal(25), z.literal(50), z.literal(100)]).optional(),
+      sort_by: z.enum(["name", "type", "status", "is_active", "created_at", "updated_at"]).optional(),
+      sort_direction: z.enum(["ASC", "DESC"]).optional(),
+    }),
+  },
+  async (args) => {
+    try {
+      const out = await tealfabric.listIntegrations(args);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_create_integration",
+  {
+    description: "Create a new integration.",
+    inputSchema: z.object({
+      name: z.string().describe("Integration name"),
+      type: z.string().describe("Integration type"),
+      description: z.string().optional(),
+      connector_id: z.string().optional(),
+      status: z.string().optional(),
+      is_active: z.boolean().optional().describe("Whether integration is enabled"),
+    }),
+  },
+  async (args) => {
+    try {
+      const out = await tealfabric.createIntegration(args);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_update_integration",
+  {
+    description: "Update an existing integration.",
+    inputSchema: z.object({
+      integration_id: z.string().describe("Integration ID"),
+      name: z.string().optional(),
+      type: z.string().optional(),
+      description: z.string().optional(),
+      connector_id: z.string().optional(),
+      status: z.string().optional(),
+      is_active: z.boolean().optional(),
+    }),
+  },
+  async ({ integration_id, ...body }) => {
+    try {
+      const out = await tealfabric.updateIntegration(integration_id, body);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
 // --- Webapps ---
 server.registerTool(
   "tealfabric_list_webapps",

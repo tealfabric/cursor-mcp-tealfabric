@@ -55,6 +55,103 @@ async function request<T>(
 }
 
 export const tealfabric = {
+  // --- Connectors ---
+  async listConnectors(params?: {
+    action?: "get" | "parameters";
+    connector_id?: string;
+  }) {
+    const q = new URLSearchParams();
+    if (params?.action) q.set("action", params.action);
+    if (params?.connector_id) q.set("connector_id", params.connector_id);
+    return request<{ success: boolean; data?: unknown; connectors?: unknown[] }>(
+      "GET",
+      `/connectors${q.toString() ? `?${q.toString()}` : ""}`
+    );
+  },
+
+  async testConnector(body: Record<string, unknown>) {
+    return request<{ success: boolean; data?: unknown; error?: string }>(
+      "POST",
+      "/connectors?action=test",
+      body
+    );
+  },
+
+  async getConnectorOAuth2Required(connectorId: string) {
+    return request<{
+      success: boolean;
+      oauth2_required?: boolean;
+      authentication_type?: string;
+    }>("GET", `/connectors/${encodeURIComponent(connectorId)}/oauth2-required`);
+  },
+
+  // --- Integrations ---
+  async listIntegrations(params?: {
+    action?: "get" | "statistics" | "test" | "status" | "execution-history";
+    integration_id?: string;
+    execution_id?: string;
+    limit?: number;
+    search?: string;
+    type?: string;
+    status?: string;
+    is_active?: 0 | 1;
+    page?: number;
+    items_per_page?: 10 | 25 | 50 | 100;
+    sort_by?: "name" | "type" | "status" | "is_active" | "created_at" | "updated_at";
+    sort_direction?: "ASC" | "DESC";
+  }) {
+    const q = new URLSearchParams();
+    if (params?.action) q.set("action", params.action);
+    if (params?.integration_id) q.set("integration_id", params.integration_id);
+    if (params?.execution_id) q.set("execution_id", params.execution_id);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.search) q.set("search", params.search);
+    if (params?.type) q.set("type", params.type);
+    if (params?.status) q.set("status", params.status);
+    if (params?.is_active != null) q.set("is_active", String(params.is_active));
+    if (params?.page != null) q.set("page", String(params.page));
+    if (params?.items_per_page != null) q.set("items_per_page", String(params.items_per_page));
+    if (params?.sort_by) q.set("sort_by", params.sort_by);
+    if (params?.sort_direction) q.set("sort_direction", params.sort_direction);
+    return request<{ success: boolean; data?: unknown; integrations?: unknown[] }>(
+      "GET",
+      `/integrations${q.toString() ? `?${q.toString()}` : ""}`
+    );
+  },
+
+  async createIntegration(body: {
+    name: string;
+    type: string;
+    description?: string;
+    connector_id?: string;
+    status?: string;
+    is_active?: boolean;
+  }) {
+    return request<{ success: boolean; data?: unknown; error?: string }>(
+      "POST",
+      "/integrations?action=create",
+      body
+    );
+  },
+
+  async updateIntegration(
+    integrationId: string,
+    body: {
+      name?: string;
+      type?: string;
+      description?: string;
+      connector_id?: string;
+      status?: string;
+      is_active?: boolean;
+    }
+  ) {
+    return request<{ success: boolean; data?: unknown; error?: string }>(
+      "PUT",
+      "/integrations?action=update",
+      { integration_id: integrationId, ...body }
+    );
+  },
+
   async listWebapps(params?: { search?: string; limit?: number }) {
     const q = new URLSearchParams();
     if (params?.search) q.set("search", params.search);

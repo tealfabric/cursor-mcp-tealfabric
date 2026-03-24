@@ -27,6 +27,8 @@ This document is for developers who want to use, configure, or extend the **Teal
 
 The Tealfabric Cursor Connector is an **MCP (Model Context Protocol) server** that runs locally and talks to the Tealfabric REST API. It lets the AI in **Cursor IDE**:
 
+- **List** connectors and check connector OAuth2 requirements
+- **List, create, and update** integrations
 - **List** webapps and ProcessFlow processes/steps
 - **Read** webapp and process details
 - **Create** and **update** webapps (e.g. `page_content`, name)
@@ -104,6 +106,12 @@ All tools return JSON (or error text) in MCP content. Parameters are validated w
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
+| `tealfabric_list_connectors` | List connectors, get connector details, or get connector parameters | `action` (optional: `get`, `parameters`), `connector_id` (optional) |
+| `tealfabric_test_connector` | Test connector configuration | `payload` (object) |
+| `tealfabric_get_connector_oauth2_required` | Check if a connector requires OAuth2 | `connector_id` |
+| `tealfabric_list_integrations` | List integrations or query by action/filter | optional: `action`, `integration_id`, `execution_id`, `limit`, `search`, `type`, `status`, `is_active`, `page`, `items_per_page`, `sort_by`, `sort_direction` |
+| `tealfabric_create_integration` | Create a new integration | `name`, `type`, optional: `description`, `connector_id`, `status`, `is_active` |
+| `tealfabric_update_integration` | Update an existing integration | `integration_id`, optional: `name`, `type`, `description`, `connector_id`, `status`, `is_active` |
 | `tealfabric_list_webapps` | List webapps for the authenticated tenant | `search` (optional), `limit` (optional) |
 | `tealfabric_get_webapp` | Get one webapp by ID | `webapp_id`, `version` (optional) |
 | `tealfabric_create_webapp` | Create a new webapp | `name`, optional: `description`, `page_content`, `page_header`, `page_footer`, `custom_css`, `custom_js`, `process_id` |
@@ -134,6 +142,12 @@ The connector calls the Tealfabric REST API under the hood. All requests use the
 
 | Tool | HTTP | Tealfabric endpoint |
 |------|------|---------------------|
+| `tealfabric_list_connectors` | GET | `/connectors` (+ optional `?action=&connector_id=`) |
+| `tealfabric_test_connector` | POST | `/connectors?action=test` (JSON body: connector config payload) |
+| `tealfabric_get_connector_oauth2_required` | GET | `/connectors/{connectorId}/oauth2-required` |
+| `tealfabric_list_integrations` | GET | `/integrations` (+ optional query filters/actions) |
+| `tealfabric_create_integration` | POST | `/integrations?action=create` (JSON body) |
+| `tealfabric_update_integration` | PUT | `/integrations?action=update` (body includes `integration_id`) |
 | `tealfabric_list_webapps` | GET | `/api/v1/webapps` (+ optional `?search=&limit=`) |
 | `tealfabric_get_webapp` | GET | `/api/v1/webapps/{id}` (+ optional `?version=`) |
 | `tealfabric_create_webapp` | POST | `/api/v1/webapps` (JSON body) |

@@ -48,6 +48,12 @@ Replace:
 
 | Tool | Description |
 |------|-------------|
+| `tealfabric_list_connectors` | List connectors (optional action: get, parameters) |
+| `tealfabric_test_connector` | Test connector configuration |
+| `tealfabric_get_connector_oauth2_required` | Check whether connector requires OAuth2 |
+| `tealfabric_list_integrations` | List integrations or query by action/filter |
+| `tealfabric_create_integration` | Create a new integration |
+| `tealfabric_update_integration` | Update an existing integration |
 | `tealfabric_list_webapps` | List webapps (optional: search, limit) |
 | `tealfabric_get_webapp` | Get one webapp by ID (optional version) |
 | `tealfabric_create_webapp` | Create a new webapp |
