@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Tealfabric MCP logo">
+  <rect width="256" height="256" rx="32" fill="#0f172a"/>
+  <path d="M48 72h160v32H48z" fill="#14b8a6"/>
+  <path d="M48 120h96v32H48z" fill="#2dd4bf"/>
+  <path d="M48 168h64v32H48z" fill="#5eead4"/>
+  <circle cx="184" cy="176" r="32" fill="#14b8a6"/>
+  <circle cx="184" cy="176" r="14" fill="#0f172a"/>
+</svg>

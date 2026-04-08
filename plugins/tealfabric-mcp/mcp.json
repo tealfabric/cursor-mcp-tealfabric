@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "tealfabric": {
+      "command": "node",
+      "args": ["${workspaceFolder}/dist/index.js"],
+      "env": {
+        "TEALFABRIC_API_KEY": "${input:tealfabric_api_key}",
+        "TEALFABRIC_API_URL": "https://tealfabric.io"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "tealfabric_api_key",
+      "type": "promptString",
+      "description": "Tealfabric API key"
+    }
+  ]
+}

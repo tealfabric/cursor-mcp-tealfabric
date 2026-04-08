@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-tealfabric",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Tealfabric: list/publish webapps and process steps from Cursor",
   "type": "module",
   "main": "dist/index.js",
@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js"
+    "dev": "tsc && node dist/index.js",
+    "validate:marketplace": "node scripts/validate-template.mjs"
   },
   "engines": {
     "node": ">=18"

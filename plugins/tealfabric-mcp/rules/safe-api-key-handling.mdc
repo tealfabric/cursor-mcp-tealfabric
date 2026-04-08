@@ -1,0 +1,9 @@
+---
+title: Safe API Key Handling
+description: Keep Tealfabric API credentials out of source control and logs.
+---
+
+- Never commit real values for `TEALFABRIC_API_KEY`.
+- Prefer local prompts or local environment variables for secrets.
+- Do not paste API keys into code examples, docs, issues, or commits.
+- When sharing config, replace keys with placeholders like `tf_live_...`.
