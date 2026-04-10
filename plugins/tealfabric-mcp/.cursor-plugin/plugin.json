@@ -1,7 +1,7 @@
 {
   "name": "tealfabric-mcp",
   "displayName": "Tealfabric MCP",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Connect Cursor to Tealfabric WebApps, Processes, Documents, Connectors, and Integrations.",
   "author": "Tealfabric",
   "repository": "https://github.com/tealfabric/cursor-mcp-tealfabric",

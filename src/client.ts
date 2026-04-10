@@ -65,14 +65,14 @@ export const tealfabric = {
     if (params?.connector_id) q.set("connector_id", params.connector_id);
     return request<{ success: boolean; data?: unknown; connectors?: unknown[] }>(
       "GET",
-      `/connectors${q.toString() ? `?${q.toString()}` : ""}`
+      `/api/v1/connectors${q.toString() ? `?${q.toString()}` : ""}`
     );
   },
 
   async testConnector(body: Record<string, unknown>) {
     return request<{ success: boolean; data?: unknown; error?: string }>(
       "POST",
-      "/connectors?action=test",
+      "/api/v1/connectors?action=test",
       body
     );
   },
@@ -82,7 +82,7 @@ export const tealfabric = {
       success: boolean;
       oauth2_required?: boolean;
       authentication_type?: string;
-    }>("GET", `/connectors/${encodeURIComponent(connectorId)}/oauth2-required`);
+    }>("GET", `/api/v1/connectors/${encodeURIComponent(connectorId)}/oauth2-required`);
   },
 
   // --- Integrations ---
@@ -115,7 +115,7 @@ export const tealfabric = {
     if (params?.sort_direction) q.set("sort_direction", params.sort_direction);
     return request<{ success: boolean; data?: unknown; integrations?: unknown[] }>(
       "GET",
-      `/integrations${q.toString() ? `?${q.toString()}` : ""}`
+      `/api/v1/integrations${q.toString() ? `?${q.toString()}` : ""}`
     );
   },
 
@@ -129,7 +129,7 @@ export const tealfabric = {
   }) {
     return request<{ success: boolean; data?: unknown; error?: string }>(
       "POST",
-      "/integrations?action=create",
+      "/api/v1/integrations?action=create",
       body
     );
   },
@@ -147,7 +147,7 @@ export const tealfabric = {
   ) {
     return request<{ success: boolean; data?: unknown; error?: string }>(
       "PUT",
-      "/integrations?action=update",
+      "/api/v1/integrations?action=update",
       { integration_id: integrationId, ...body }
     );
   },
