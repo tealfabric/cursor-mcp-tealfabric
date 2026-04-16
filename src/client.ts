@@ -367,6 +367,48 @@ export const tealfabric = {
     );
   },
 
+  async downloadDocument(params: { file_path: string; tenant_id?: string }) {
+    const base = getBaseUrl();
+    const q = new URLSearchParams({ action: "download", file_path: params.file_path });
+    if (params.tenant_id) q.set("tenant_id", params.tenant_id);
+    const url = `${base}/api/v1/documents?${q.toString()}`;
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: getApiKeyHeaders(),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Tealfabric API ${res.status}: ${text || res.statusText}`);
+    }
+
+    const contentType = res.headers.get("content-type") || "application/octet-stream";
+    if (contentType.includes("application/json")) {
+      const text = await res.text();
+      try {
+        return JSON.parse(text) as { success: boolean; data?: unknown };
+      } catch {
+        return { success: true, data: text };
+      }
+    }
+
+    const contentDisposition = res.headers.get("content-disposition") || "";
+    const filenameMatch =
+      /filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i.exec(contentDisposition);
+    const filename = decodeURIComponent(filenameMatch?.[1] || filenameMatch?.[2] || "");
+
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    return {
+      success: true,
+      data: {
+        file_path: params.file_path,
+        filename: filename || undefined,
+        content_type: contentType,
+        content_base64: Buffer.from(bytes).toString("base64"),
+      },
+    };
+  },
+
   async uploadDocument(params: {
     destination_path: string;
     file_path: string;

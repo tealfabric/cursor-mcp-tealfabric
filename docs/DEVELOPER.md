@@ -36,7 +36,7 @@ The Tealfabric Cursor Connector is an **MCP (Model Context Protocol) server** th
 - **Execute** ProcessFlow processes (with optional input)
 - **Create** and **update** processes (process flows)
 - **Create** and **update** process steps
-- **List, upload, move, delete** documents (package files for delivery)
+- **List, download, upload, move, delete** documents (package files for delivery)
 
 The server is **standalone**: it only depends on Node.js, npm packages (`@modelcontextprotocol/sdk`, `zod`), and the Tealfabric API. It does not depend on the Tealfabric codebase.
 
@@ -128,6 +128,7 @@ All tools return JSON (or error text) in MCP content. Parameters are validated w
 | `tealfabric_update_process_step` | Update an existing process step | `step_id`, optional: `step_name`, `description`, `code_snippet`, etc. |
 | `tealfabric_list_documents` | List documents in a directory | `path` (optional), `tenant_id` (optional) |
 | `tealfabric_get_document_metadata` | Get file metadata | `file_path`, `tenant_id` (optional) |
+| `tealfabric_download_document` | Download file content | `file_path`, `tenant_id` (optional) |
 | `tealfabric_upload_document` | Upload a file (e.g. built package) | `destination_path`, `file_path`, `tenant_id` (optional) |
 | `tealfabric_move_document` | Move or rename file/directory | `old_path`, `new_path`, `tenant_id` (optional) |
 | `tealfabric_delete_document` | Delete file or directory | `path`, `tenant_id` (optional) |
@@ -164,6 +165,7 @@ The connector calls the Tealfabric REST API under the hood. All requests use the
 | `tealfabric_update_process_step` | PUT | `/api/v1/processes?action=update-step` (body: `step_id`, …) |
 | `tealfabric_list_documents` | GET | `/api/v1/documents?action=list` (+ optional `path`, `tenant_id`) |
 | `tealfabric_get_document_metadata` | GET | `/api/v1/documents?action=metadata&file_path={path}` |
+| `tealfabric_download_document` | GET | `/api/v1/documents?action=download&file_path={path}` |
 | `tealfabric_upload_document` | POST | `/api/v1/documents?action=upload` (multipart: `destination_path`, `file`) |
 | `tealfabric_move_document` | PUT | `/api/v1/documents?action=move` (body: `old_path`, `new_path`) |
 | `tealfabric_delete_document` | DELETE | `/api/v1/documents?action=delete&path={path}` |
