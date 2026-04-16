@@ -1,6 +1,6 @@
 # Tealfabric MCP Server for Cursor
 
-MCP (Model Context Protocol) server that connects **Cursor IDE** to the **Tealfabric** platform. The model in Cursor can list webapps and processes, publish webapps, get/update process steps, execute processes, and upload/manage documents (package files for delivery).
+MCP (Model Context Protocol) server that connects **Cursor IDE** to the **Tealfabric** platform. The model in Cursor can list webapps and processes, publish webapps, get/update process steps, execute processes, and list/download/upload/manage documents (package files for delivery).
 
 ## Prerequisites
 

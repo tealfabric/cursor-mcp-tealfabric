@@ -121,14 +121,14 @@ All tools return JSON (or error text) in MCP content. Parameters are validated w
 | `tealfabric_get_process` | Get one process by ID | `process_id` |
 | `tealfabric_list_process_steps` | List steps of a process | `process_id` |
 | `tealfabric_get_process_step` | Get one process step by step_id | `step_id` |
-| `tealfabric_execute_process` | Execute a process | `process_id`, `input` (optional object) |
+| `tealfabric_execute_process` | Execute a process | `process_id`, `input` (optional object; mapped to `input_data` for API) |
 | `tealfabric_create_process` | Create a new process (process flow) | `name`, optional: `description`, `type`, `status`, `version`, `category`, `tags`, etc. |
 | `tealfabric_update_process` | Update an existing process | `process_id`, optional: `name`, `description`, `status`, etc. |
 | `tealfabric_create_process_step` | Create a new step in a process flow | `process_id`, `step_name`, optional: `step_type`, `description`, `code_snippet`, etc. |
 | `tealfabric_update_process_step` | Update an existing process step | `step_id`, optional: `step_name`, `description`, `code_snippet`, etc. |
 | `tealfabric_list_documents` | List documents in a directory | `path` (optional), `tenant_id` (optional) |
 | `tealfabric_get_document_metadata` | Get file metadata | `file_path`, `tenant_id` (optional) |
-| `tealfabric_download_document` | Download file content | `file_path`, `tenant_id` (optional) |
+| `tealfabric_download_document` | Download file content (base64 payload for binary-safe transfer) | `file_path`, `tenant_id` (optional) |
 | `tealfabric_upload_document` | Upload a file (e.g. built package) | `destination_path`, `file_path`, `tenant_id` (optional) |
 | `tealfabric_move_document` | Move or rename file/directory | `old_path`, `new_path`, `tenant_id` (optional) |
 | `tealfabric_delete_document` | Delete file or directory | `path`, `tenant_id` (optional) |
@@ -143,12 +143,12 @@ The connector calls the Tealfabric REST API under the hood. All requests use the
 
 | Tool | HTTP | Tealfabric endpoint |
 |------|------|---------------------|
-| `tealfabric_list_connectors` | GET | `/connectors` (+ optional `?action=&connector_id=`) |
-| `tealfabric_test_connector` | POST | `/connectors?action=test` (JSON body: connector config payload) |
-| `tealfabric_get_connector_oauth2_required` | GET | `/connectors/{connectorId}/oauth2-required` |
-| `tealfabric_list_integrations` | GET | `/integrations` (+ optional query filters/actions) |
-| `tealfabric_create_integration` | POST | `/integrations?action=create` (JSON body) |
-| `tealfabric_update_integration` | PUT | `/integrations?action=update` (body includes `integration_id`) |
+| `tealfabric_list_connectors` | GET | `/api/v1/connectors` (+ optional `?action=&connector_id=`) |
+| `tealfabric_test_connector` | POST | `/api/v1/connectors?action=test` (JSON body: connector config payload) |
+| `tealfabric_get_connector_oauth2_required` | GET | `/api/v1/connectors/{connectorId}/oauth2-required` |
+| `tealfabric_list_integrations` | GET | `/api/v1/integrations` (+ optional query filters/actions) |
+| `tealfabric_create_integration` | POST | `/api/v1/integrations?action=create` (JSON body) |
+| `tealfabric_update_integration` | PUT | `/api/v1/integrations?action=update` (body includes `integration_id`) |
 | `tealfabric_list_webapps` | GET | `/api/v1/webapps` (+ optional `?search=&limit=`) |
 | `tealfabric_get_webapp` | GET | `/api/v1/webapps/{id}` (+ optional `?version=`) |
 | `tealfabric_create_webapp` | POST | `/api/v1/webapps` (JSON body) |
@@ -158,7 +158,7 @@ The connector calls the Tealfabric REST API under the hood. All requests use the
 | `tealfabric_get_process` | GET | `/api/v1/processflow?action=process&process_id={id}` |
 | `tealfabric_list_process_steps` | GET | `/api/v1/processflow?action=steps&process_id={id}` |
 | `tealfabric_get_process_step` | GET | `/api/v1/processflow?action=step&step_id={id}` |
-| `tealfabric_execute_process` | POST | `/api/v1/processflow?action=execute-process` (body: `process_id`, `input`) |
+| `tealfabric_execute_process` | POST | `/api/v1/processflow?action=execute-process` (body: `process_id`, `input_data`) |
 | `tealfabric_create_process` | POST | `/api/v1/processes?action=create` (JSON body) |
 | `tealfabric_update_process` | PUT | `/api/v1/processes?action=update` (body: `process_id`, …) |
 | `tealfabric_create_process_step` | POST | `/api/v1/processes?action=create-step` (body: `process_id`, `step_name`, …) |

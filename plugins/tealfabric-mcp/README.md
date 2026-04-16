@@ -6,7 +6,7 @@ Cursor marketplace plugin for connecting AI workflows to Tealfabric.
 
 - Webapp operations (list/get/create/update/publish)
 - Process and process-step operations (list/get/create/update/execute)
-- Document operations (list/metadata/upload/move/delete)
+- Document operations (list/metadata/download/upload/move/delete)
 - Connector operations (list/test/oauth2-required)
 - Integration operations (list/create/update)
 
