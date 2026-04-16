@@ -527,6 +527,26 @@ server.registerTool(
 );
 
 server.registerTool(
+  "tealfabric_download_document",
+  {
+    description:
+      "Download a document/file from Tealfabric documents storage. Returns file content as base64 for binary-safe transfer.",
+    inputSchema: z.object({
+      file_path: z.string().describe("Full path to the file (e.g. packages/report-v1.zip)"),
+      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+    }),
+  },
+  async ({ file_path, tenant_id }) => {
+    try {
+      const out = await tealfabric.downloadDocument({ file_path, tenant_id });
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
   "tealfabric_upload_document",
   {
     description:
