@@ -248,7 +248,7 @@ export const tealfabric = {
     return request<{ success: boolean; result?: unknown; error?: string }>(
       "POST",
       "/api/v1/processflow?action=execute-process",
-      { process_id: processId, input: input ?? {} }
+      { process_id: processId, input_data: input ?? {} }
     );
   },
 

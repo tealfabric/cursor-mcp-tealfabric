@@ -90,3 +90,13 @@ Replace:
 
 - **Developer guide (setup, tools, API mapping, extending):** [docs/DEVELOPER.md](docs/DEVELOPER.md)
 - **Tealfabric platform docs (WebApps, ProcessFlow, APIs):** [https://tealfabric.io/docs](https://tealfabric.io/docs)
+
+## Related projects
+
+Tealfabric exposes the same MCP capabilities across different host environments. Each repo ships the appropriate packaging and setup for its platform:
+
+| Host | Repository |
+|------|------------|
+| **Cursor** (this repository) | [tealfabric/cursor-mcp-tealfabric](https://github.com/tealfabric/cursor-mcp-tealfabric) |
+| **Claude** (Claude Code and compatible MCP clients) | [tealfabric/claude-mcp-tealfabric](https://github.com/tealfabric/claude-mcp-tealfabric) |
+| **Lovable** | [tealfabric/lovable-mcp-tealfabric](https://github.com/tealfabric/lovable-mcp-tealfabric) |
