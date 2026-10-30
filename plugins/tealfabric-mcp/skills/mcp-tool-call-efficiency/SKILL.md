@@ -27,33 +27,14 @@ Use this skill when you need reliable MCP calls with minimal retries.
 
 1. `tealfabric_list_connectors` with empty input.
 2. If connector identified, call `tealfabric_get_connector_oauth2_required`.
-3. Call `tealfabric_test_connector` with minimal connector config payload.
-
-Example minimal envelopes:
-
-```json
-{
-  "tool": "tealfabric_list_connectors",
-  "args": {}
-}
-```
-
-```json
-{
-  "tool": "tealfabric_get_connector_oauth2_required",
-  "args": {
-    "connector_id": "YOUR_CONNECTOR_ID"
-  }
-}
-```
+3. Call `tealfabric_test_connector` with `connector_id` and optional `configuration`.
 
 ```json
 {
   "tool": "tealfabric_test_connector",
   "args": {
-    "payload": {
-      "connector_id": "YOUR_CONNECTOR_ID"
-    }
+    "connector_id": "YOUR_CONNECTOR_ID",
+    "configuration": {}
   }
 }
 ```
@@ -69,21 +50,33 @@ Example minimal envelopes:
   "tool": "tealfabric_create_integration",
   "args": {
     "name": "Salesforce Sync",
-    "type": "salesforce"
+    "type": "api"
   }
 }
 ```
 
+### Webapps: create then publish
+
+1. Ensure a `webapp_user` exists; never use `tenant_admin` as `webapp_user_id`.
+2. `tealfabric_create_webapp` with required `name`, `type`, `page_content`, `webapp_user_id`.
+3. Edit with `tealfabric_update_webapp` or `tealfabric_create_webapp_version` as needed.
+4. `tealfabric_publish_webapp` with **both** `webapp_id` and `version`.
+
 ```json
 {
-  "tool": "tealfabric_update_integration",
+  "tool": "tealfabric_publish_webapp",
   "args": {
-    "integration_id": "YOUR_INTEGRATION_ID",
-    "description": "Sync leads nightly",
-    "is_active": true
+    "webapp_id": "YOUR_WEBAPP_ID",
+    "version": 1
   }
 }
 ```
+
+### Documents: text vs binary
+
+- Prefer `tealfabric_read_document_text` / `tealfabric_write_document_text` for UTF-8 files.
+- Use `tealfabric_download_document` for binary packages (base64).
+- Use `tealfabric_list_document_tree` when browsing nested paths.
 
 ## Recovery Path (When Calls Fail)
 
@@ -91,6 +84,7 @@ Example minimal envelopes:
    - missing required key
    - invalid enum/value
    - wrong identifier key name
+   - insufficient API key scope
 2. Retry once with only the corrected field(s).
 3. If still failing, call relevant list/get tool to refresh IDs/state.
 
@@ -98,5 +92,8 @@ Example minimal envelopes:
 
 - Passing large speculative payloads to create endpoints.
 - Mixing connector and integration IDs in the same field.
+- Publishing a webapp without `version`.
+- Creating a webapp without `type`, `page_content`, or `webapp_user_id`.
+- Using retired document download `?action=download` (server uses `/documents/download`).
 - Repeated retries without changing payload semantics.
 - Adding undocumented keys.

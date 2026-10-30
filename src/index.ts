@@ -2,18 +2,10 @@
 /**
  * Tealfabric MCP Server for Cursor
  *
- * Exposes tools: list webapps, get/update/publish webapp, list processes/steps,
- * get process/step, create/update process, create/update process step, execute process,
- * list/upload/move/delete documents (package files).
+ * Exposes tools for connectors, integrations, webapps, ProcessFlow, and documents.
+ * Aligned with backend-next REST contracts.
  *
  * Env: TEALFABRIC_API_KEY (required), TEALFABRIC_API_URL (optional, default https://tealfabric.io)
- *
- * Cursor config (.cursor/mcp.json):
- *   "tealfabric": {
- *     "command": "node",
- *     "args": ["/absolute/path/to/mcp-server-tealfabric/dist/index.js"],
- *     "env": { "TEALFABRIC_API_KEY": "tf_live_...", "TEALFABRIC_API_URL": "https://tealfabric.io" }
- *   }
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -29,8 +21,43 @@ function resultContent(data: unknown) {
   return jsonContent(typeof data === "string" ? data : JSON.stringify(data, null, 2));
 }
 
+const integrationTypeEnum = z.enum([
+  "api",
+  "webhook",
+  "message_queue",
+  "file_transfer",
+  "database",
+  "email",
+  "sms",
+  "other",
+]);
+
+const integrationStatusEnum = z.enum(["active", "inactive", "error", "testing"]);
+
+const webappTypeEnum = z.enum([
+  "webapp",
+  "webhook",
+  "websocket",
+  "callback",
+  "document-viewer",
+  "document_viewer",
+]);
+
+const processStatusEnum = z.enum(["draft", "active", "inactive", "archived"]);
+
+const authTransportEnum = z.enum(["cookie", "bearer", "both"]);
+
+const stepLanguageEnum = z.enum(["javascript", "typescript", "php"]);
+
+const pageSizeEnum = z.union([z.literal(10), z.literal(25), z.literal(50), z.literal(100)]);
+
+const tenantIdIgnored = z
+  .string()
+  .optional()
+  .describe("Ignored by the API; auth tenant wins. Kept for backward compatibility.");
+
 const server = new McpServer(
-  { name: "tealfabric", version: "0.1.0" },
+  { name: "tealfabric", version: "0.2.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -57,16 +84,18 @@ server.registerTool(
 server.registerTool(
   "tealfabric_test_connector",
   {
-    description: "Test a connector configuration payload against the Tealfabric connectors test endpoint.",
+    description: "Test a connector configuration against the Tealfabric connectors test endpoint.",
     inputSchema: z.object({
-      payload: z
-        .record(z.unknown())
-        .describe("Connector configuration payload expected by the selected connector"),
+      connector_id: z.string().describe("Connector ID"),
+      configuration: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .describe("Connector configuration object expected by the selected connector"),
     }),
   },
-  async ({ payload }) => {
+  async ({ connector_id, configuration }) => {
     try {
-      const out = await tealfabric.testConnector(payload);
+      const out = await tealfabric.testConnector({ connector_id, configuration });
       return { content: resultContent(out) };
     } catch (e) {
       return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
@@ -111,7 +140,7 @@ server.registerTool(
       status: z.string().optional(),
       is_active: z.union([z.literal(0), z.literal(1)]).optional().describe("1=enabled, 0=disabled"),
       page: z.number().int().min(1).optional(),
-      items_per_page: z.union([z.literal(10), z.literal(25), z.literal(50), z.literal(100)]).optional(),
+      items_per_page: pageSizeEnum.optional(),
       sort_by: z.enum(["name", "type", "status", "is_active", "created_at", "updated_at"]).optional(),
       sort_direction: z.enum(["ASC", "DESC"]).optional(),
     }),
@@ -132,11 +161,17 @@ server.registerTool(
     description: "Create a new integration.",
     inputSchema: z.object({
       name: z.string().describe("Integration name"),
-      type: z.string().describe("Integration type"),
+      type: integrationTypeEnum.describe("Integration type"),
       description: z.string().optional(),
       connector_id: z.string().optional(),
-      status: z.string().optional(),
+      status: integrationStatusEnum.optional(),
       is_active: z.boolean().optional().describe("Whether integration is enabled"),
+      configuration: z.record(z.string(), z.unknown()).optional().describe("Connector configuration"),
+      connector_configuration: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .describe("Alias for configuration"),
+      executable_by_ai_agents: z.boolean().optional(),
     }),
   },
   async (args) => {
@@ -156,11 +191,14 @@ server.registerTool(
     inputSchema: z.object({
       integration_id: z.string().describe("Integration ID"),
       name: z.string().optional(),
-      type: z.string().optional(),
+      type: integrationTypeEnum.optional(),
       description: z.string().optional(),
       connector_id: z.string().optional(),
-      status: z.string().optional(),
+      status: integrationStatusEnum.optional(),
       is_active: z.boolean().optional(),
+      configuration: z.record(z.string(), z.unknown()).optional(),
+      connector_configuration: z.record(z.string(), z.unknown()).optional(),
+      executable_by_ai_agents: z.boolean().optional(),
     }),
   },
   async ({ integration_id, ...body }) => {
@@ -173,19 +211,63 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  "tealfabric_execute_integration",
+  {
+    description: "Execute an integration (optionally async) with optional call data.",
+    inputSchema: z.object({
+      integration_id: z.string().describe("Integration ID"),
+      data: z.record(z.string(), z.unknown()).optional().describe("Optional execution call data"),
+      async: z.boolean().optional().describe("When true, enqueue async execution"),
+    }),
+  },
+  async (args) => {
+    try {
+      const out = await tealfabric.executeIntegration(args);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_delete_integration",
+  {
+    description: "Delete an integration by ID.",
+    inputSchema: z.object({
+      integration_id: z.string().describe("Integration ID"),
+    }),
+  },
+  async ({ integration_id }) => {
+    try {
+      const out = await tealfabric.deleteIntegration(integration_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
 // --- Webapps ---
 server.registerTool(
   "tealfabric_list_webapps",
   {
-    description: "List Tealfabric webapps for the authenticated tenant. Optionally filter by search or limit.",
+    description: "List Tealfabric webapps for the authenticated tenant.",
     inputSchema: z.object({
       search: z.string().optional().describe("Search by name or description"),
-      limit: z.number().optional().describe("Max results (default 50)"),
+      page: z.number().int().min(1).optional(),
+      items_per_page: pageSizeEnum.optional(),
+      type: z.string().optional(),
+      published_only: z.boolean().optional(),
+      process_id: z.string().optional(),
+      sort_by: z.enum(["name", "type", "created_at", "updated_at", "version"]).optional(),
+      sort_direction: z.enum(["ASC", "DESC"]).optional(),
     }),
   },
-  async ({ search, limit }) => {
+  async (args) => {
     try {
-      const out = await tealfabric.listWebapps({ search, limit });
+      const out = await tealfabric.listWebapps(args);
       return { content: resultContent(out) };
     } catch (e) {
       return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
@@ -215,16 +297,33 @@ server.registerTool(
 server.registerTool(
   "tealfabric_create_webapp",
   {
-    description: "Create a new Tealfabric webapp. Returns the new webapp_id.",
+    description:
+      "Create a new Tealfabric webapp (unpublished by default). Requires name, type, page_content, and webapp_user_id.",
     inputSchema: z.object({
       name: z.string().describe("Webapp name"),
+      type: webappTypeEnum.describe("Webapp type"),
+      page_content: z.string().describe("HTML page content"),
+      webapp_user_id: z
+        .string()
+        .describe("Users.user_id with role webapp_user (required; never use tenant_admin)"),
       description: z.string().optional(),
-      page_content: z.string().optional(),
+      code_snippet: z.string().optional(),
+      page_head: z.string().optional(),
       page_header: z.string().optional(),
       page_footer: z.string().optional(),
       custom_css: z.string().optional(),
       custom_js: z.string().optional(),
       process_id: z.string().optional().describe("Link to a process ID"),
+      version: z.number().optional(),
+      is_published: z.boolean().optional(),
+      http_headers: z.unknown().optional(),
+      custom_security_policy: z.string().optional(),
+      custom_referrer_policy: z.string().optional(),
+      auth_transport: authTransportEnum.optional(),
+      auth_require: z.boolean().optional(),
+      public_uri_host: z.string().optional(),
+      public_uri_path: z.string().optional(),
+      public_uris: z.unknown().optional(),
     }),
   },
   async (args) => {
@@ -240,17 +339,30 @@ server.registerTool(
 server.registerTool(
   "tealfabric_update_webapp",
   {
-    description: "Update an existing Tealfabric webapp (e.g. page_content, name).",
+    description: "Update an existing Tealfabric webapp (content, auth, public URI, etc.).",
     inputSchema: z.object({
       webapp_id: z.string().describe("Webapp UUID"),
       name: z.string().optional(),
       description: z.string().optional(),
+      webapp_user_id: z.string().optional(),
+      process_id: z.string().nullable().optional(),
       page_content: z.string().optional(),
+      code_snippet: z.string().optional(),
+      page_head: z.string().optional(),
       page_header: z.string().optional(),
       page_footer: z.string().optional(),
       custom_css: z.string().optional(),
       custom_js: z.string().optional(),
-      process_id: z.string().nullable().optional(),
+      http_headers: z.unknown().optional(),
+      custom_security_policy: z.string().optional(),
+      custom_referrer_policy: z.string().optional(),
+      auth_transport: authTransportEnum.optional(),
+      auth_require: z.boolean().optional(),
+      public_uri_host: z.string().optional(),
+      public_uri_path: z.string().optional(),
+      public_uris: z.unknown().optional(),
+      version: z.number().optional().describe("Pin update to a numeric version when supported"),
+      version_id: z.union([z.string(), z.number()]).optional(),
     }),
   },
   async ({ webapp_id, ...body }) => {
@@ -266,12 +378,69 @@ server.registerTool(
 server.registerTool(
   "tealfabric_publish_webapp",
   {
-    description: "Publish a Tealfabric webapp (make the current version live).",
-    inputSchema: z.object({ webapp_id: z.string().describe("Webapp UUID") }),
+    description: "Publish a Tealfabric webapp version (make that version live).",
+    inputSchema: z.object({
+      webapp_id: z.string().describe("Webapp UUID"),
+      version: z.number().int().positive().describe("Version number to publish (required)"),
+    }),
+  },
+  async ({ webapp_id, version }) => {
+    try {
+      const out = await tealfabric.publishWebapp(webapp_id, version);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_unpublish_webapp",
+  {
+    description: "Unpublish a Tealfabric webapp (take it offline).",
+    inputSchema: z.object({
+      webapp_id: z.string().describe("Webapp UUID"),
+    }),
   },
   async ({ webapp_id }) => {
     try {
-      const out = await tealfabric.publishWebapp(webapp_id);
+      const out = await tealfabric.unpublishWebapp(webapp_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_create_webapp_version",
+  {
+    description: "Create a new unpublished version of a webapp (copies latest version).",
+    inputSchema: z.object({
+      webapp_id: z.string().describe("Webapp UUID"),
+    }),
+  },
+  async ({ webapp_id }) => {
+    try {
+      const out = await tealfabric.createWebappVersion(webapp_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_delete_webapp",
+  {
+    description: "Delete a Tealfabric webapp by ID.",
+    inputSchema: z.object({
+      webapp_id: z.string().describe("Webapp UUID"),
+    }),
+  },
+  async ({ webapp_id }) => {
+    try {
+      const out = await tealfabric.deleteWebapp(webapp_id);
       return { content: resultContent(out) };
     } catch (e) {
       return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
@@ -350,7 +519,7 @@ server.registerTool(
     description: "Execute a Tealfabric process with optional input.",
     inputSchema: z.object({
       process_id: z.string().describe("Process ID"),
-      input: z.record(z.unknown()).optional().describe("Process input payload"),
+      input: z.record(z.string(), z.unknown()).optional().describe("Process input payload"),
     }),
   },
   async ({ process_id, input }) => {
@@ -371,15 +540,12 @@ server.registerTool(
       name: z.string().describe("Process name"),
       description: z.string().optional(),
       type: z.string().optional(),
-      status: z.enum(["draft", "active", "inactive", "archived"]).optional().default("draft"),
-      version: z.string().optional(),
+      status: processStatusEnum.optional().default("draft"),
       category: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-      configuration: z.record(z.unknown()).optional(),
+      configuration: z.record(z.string(), z.unknown()).optional(),
       is_template: z.boolean().optional(),
-      template_id: z.string().optional(),
-      estimated_duration: z.number().optional(),
       priority: z.string().optional(),
+      executable_by_ai_agents: z.boolean().optional(),
     }),
   },
   async (args) => {
@@ -401,15 +567,12 @@ server.registerTool(
       name: z.string().optional(),
       description: z.string().optional(),
       type: z.string().optional(),
-      status: z.enum(["draft", "active", "inactive", "archived"]).optional(),
-      version: z.string().optional(),
+      status: processStatusEnum.optional(),
       category: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-      configuration: z.record(z.unknown()).optional(),
+      configuration: z.record(z.string(), z.unknown()).optional(),
       is_template: z.boolean().optional(),
-      template_id: z.string().optional(),
-      estimated_duration: z.number().optional(),
       priority: z.string().optional(),
+      executable_by_ai_agents: z.boolean().optional(),
     }),
   },
   async ({ process_id, ...body }) => {
@@ -423,29 +586,67 @@ server.registerTool(
 );
 
 server.registerTool(
+  "tealfabric_delete_process",
+  {
+    description: "Hard-delete a Tealfabric process by ID.",
+    inputSchema: z.object({
+      process_id: z.string().describe("Process ID"),
+    }),
+  },
+  async ({ process_id }) => {
+    try {
+      const out = await tealfabric.deleteProcess(process_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_retire_process",
+  {
+    description:
+      "Soft-retire a process (sets status inactive and prefixes name with <retired>). Prefer this over hard delete when preserving history.",
+    inputSchema: z.object({
+      process_id: z.string().describe("Process ID"),
+    }),
+  },
+  async ({ process_id }) => {
+    try {
+      const out = await tealfabric.retireProcess(process_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
   "tealfabric_create_process_step",
   {
     description: "Create a new process step in a process flow. Returns the new step_id.",
     inputSchema: z.object({
       process_id: z.string().describe("Process ID to add the step to"),
-      step_name: z.string().describe("Step name"),
-      name: z.string().optional().describe("Alias for step_name"),
+      name: z.string().optional().describe("Step name (preferred)"),
+      step_name: z.string().optional().describe("Alias for name"),
       step_type: z.string().optional().default("action"),
       description: z.string().optional(),
       code_snippet: z.string().optional(),
       sequence: z.number().optional(),
-      position_x: z.number().optional(),
-      position_y: z.number().optional(),
-      estimated_duration: z.number().optional(),
-      assigned_user_id: z.string().optional(),
-      step_status: z.string().optional(),
-      input_schema: z.record(z.unknown()).optional(),
-      output_schema: z.record(z.unknown()).optional(),
-      configuration: z.record(z.unknown()).optional(),
+      sequence_order: z.number().optional(),
+      input_schema: z.record(z.string(), z.unknown()).optional(),
+      output_schema: z.record(z.string(), z.unknown()).optional(),
+      configuration: z.record(z.string(), z.unknown()).optional(),
+      language: stepLanguageEnum.optional(),
+      execution_timeout: z.number().optional().describe("Execution timeout in seconds"),
     }),
   },
   async (args) => {
     try {
+      if (!args.name && !args.step_name) {
+        return { content: jsonContent("Error: name or step_name is required") };
+      }
       const out = await tealfabric.createProcessStep(args);
       return { content: resultContent(out) };
     } catch (e) {
@@ -460,20 +661,20 @@ server.registerTool(
     description: "Update an existing process step in a process flow.",
     inputSchema: z.object({
       step_id: z.string().describe("Step ID"),
-      step_name: z.string().optional(),
-      name: z.string().optional().describe("Alias for step_name"),
+      name: z.string().optional().describe("Step name (preferred)"),
+      step_name: z.string().optional().describe("Alias for name"),
       step_type: z.string().optional(),
       description: z.string().optional(),
       code_snippet: z.string().optional(),
       sequence: z.number().optional(),
+      sequence_order: z.number().optional(),
       position_x: z.number().optional(),
       position_y: z.number().optional(),
-      estimated_duration: z.number().optional(),
-      assigned_user_id: z.string().optional(),
-      step_status: z.string().optional(),
-      input_schema: z.record(z.unknown()).optional(),
-      output_schema: z.record(z.unknown()).optional(),
-      configuration: z.record(z.unknown()).optional(),
+      input_schema: z.record(z.string(), z.unknown()).optional(),
+      output_schema: z.record(z.string(), z.unknown()).optional(),
+      configuration: z.record(z.string(), z.unknown()).optional(),
+      language: stepLanguageEnum.optional(),
+      execution_timeout: z.number().optional().describe("Execution timeout in seconds"),
     }),
   },
   async ({ step_id, ...body }) => {
@@ -486,7 +687,25 @@ server.registerTool(
   }
 );
 
-// --- Documents (package files for delivery) ---
+server.registerTool(
+  "tealfabric_delete_process_step",
+  {
+    description: "Delete a process step by step_id.",
+    inputSchema: z.object({
+      step_id: z.string().describe("Step ID"),
+    }),
+  },
+  async ({ step_id }) => {
+    try {
+      const out = await tealfabric.deleteProcessStep(step_id);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+// --- Documents ---
 server.registerTool(
   "tealfabric_list_documents",
   {
@@ -494,7 +713,7 @@ server.registerTool(
       "List documents/files in a Tealfabric documents directory. Use for browsing package files.",
     inputSchema: z.object({
       path: z.string().optional().describe("Directory path (e.g. packages/, or root if omitted)"),
-      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+      tenant_id: tenantIdIgnored,
     }),
   },
   async ({ path, tenant_id }) => {
@@ -508,17 +727,78 @@ server.registerTool(
 );
 
 server.registerTool(
+  "tealfabric_list_document_tree",
+  {
+    description: "List a Tealfabric documents directory as a tree (action=tree).",
+    inputSchema: z.object({
+      path: z.string().optional().describe("Directory path"),
+      max_depth: z.number().int().min(1).max(8).optional().describe("Tree depth (1–8, default 3)"),
+      tenant_id: tenantIdIgnored,
+    }),
+  },
+  async (args) => {
+    try {
+      const out = await tealfabric.listDocumentTree(args);
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
   "tealfabric_get_document_metadata",
   {
     description: "Get metadata for a document/file in Tealfabric documents storage.",
     inputSchema: z.object({
       file_path: z.string().describe("Full path to the file (e.g. packages/report-v1.zip)"),
-      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+      tenant_id: tenantIdIgnored,
     }),
   },
   async ({ file_path, tenant_id }) => {
     try {
       const out = await tealfabric.getDocumentMetadata({ file_path, tenant_id });
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_read_document_text",
+  {
+    description: "Read a UTF-8 text document from Tealfabric documents storage (action=read-text).",
+    inputSchema: z.object({
+      file_path: z.string().describe("Full path to the text file"),
+      tenant_id: tenantIdIgnored,
+    }),
+  },
+  async ({ file_path, tenant_id }) => {
+    try {
+      const out = await tealfabric.readDocumentText({ file_path, tenant_id });
+      return { content: resultContent(out) };
+    } catch (e) {
+      return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
+    }
+  }
+);
+
+server.registerTool(
+  "tealfabric_write_document_text",
+  {
+    description:
+      "Write UTF-8 text to a Tealfabric documents path (action=write-text; creates a backup).",
+    inputSchema: z.object({
+      file_path: z.string().describe("Full path to the file to write"),
+      content: z.string().describe("UTF-8 text content"),
+      encoding: z.string().optional().describe("Must be utf8 / utf-8 when provided"),
+      tenant_id: tenantIdIgnored,
+    }),
+  },
+  async (args) => {
+    try {
+      const out = await tealfabric.writeDocumentText(args);
       return { content: resultContent(out) };
     } catch (e) {
       return { content: jsonContent(`Error: ${e instanceof Error ? e.message : String(e)}`) };
@@ -533,7 +813,7 @@ server.registerTool(
       "Download a document/file from Tealfabric documents storage. Returns file content as base64 for binary-safe transfer.",
     inputSchema: z.object({
       file_path: z.string().describe("Full path to the file (e.g. packages/report-v1.zip)"),
-      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+      tenant_id: tenantIdIgnored,
     }),
   },
   async ({ file_path, tenant_id }) => {
@@ -558,7 +838,7 @@ server.registerTool(
       file_path: z
         .string()
         .describe("Local filesystem path to the file to upload (e.g. ./dist/package.zip)"),
-      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+      tenant_id: tenantIdIgnored,
     }),
   },
   async ({ destination_path, file_path, tenant_id }) => {
@@ -579,7 +859,7 @@ server.registerTool(
     inputSchema: z.object({
       old_path: z.string().describe("Current path of the file or directory"),
       new_path: z.string().describe("Destination path"),
-      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+      tenant_id: tenantIdIgnored,
     }),
   },
   async ({ old_path, new_path, tenant_id }) => {
@@ -598,7 +878,7 @@ server.registerTool(
     description: "Delete a file or directory from Tealfabric documents storage.",
     inputSchema: z.object({
       path: z.string().describe("Path to the file or directory to delete"),
-      tenant_id: z.string().optional().describe("Tenant ID (defaults to authenticated tenant)"),
+      tenant_id: tenantIdIgnored,
     }),
   },
   async ({ path, tenant_id }) => {
