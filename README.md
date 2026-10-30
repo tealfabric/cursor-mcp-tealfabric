@@ -1,11 +1,12 @@
 # Tealfabric MCP Server for Cursor
 
-MCP (Model Context Protocol) server that connects **Cursor IDE** to the **Tealfabric** platform. The model in Cursor can list webapps and processes, publish webapps, get/update process steps, execute processes, and upload/manage documents (package files for delivery).
+MCP (Model Context Protocol) server that connects **Cursor IDE** to the **Tealfabric** platform. The model in Cursor can manage connectors, integrations, webapps, ProcessFlow processes/steps, and documents (including text read/write and package delivery).
 
 ## Prerequisites
 
 - **Node.js 18+**
 - A **Tealfabric API key** (create one in Tealfabric: User settings → API Keys, or `POST /api/v1/api-keys` when logged in)
+- Key scopes as needed: `connectors.read|write`, `integrations.read|write|execute|delete`, `webapps.read|write`, `processflow.read|write`, `documents.read|write`
 
 ## Install
 
@@ -14,6 +15,8 @@ cd cursor-mcp-tealfabric
 npm install
 npm run build
 ```
+
+Upgrading from **0.1.x**? Read [docs/RELEASE_NOTES_0.2.0.md](docs/RELEASE_NOTES_0.2.0.md) and [docs/MIGRATING.md](docs/MIGRATING.md) — publish, create-webapp, list-webapps, and test-connector inputs changed.
 
 ## Cursor setup
 
@@ -49,27 +52,38 @@ Replace:
 | Tool | Description |
 |------|-------------|
 | `tealfabric_list_connectors` | List connectors (optional action: get, parameters) |
-| `tealfabric_test_connector` | Test connector configuration |
+| `tealfabric_test_connector` | Test connector (`connector_id` + optional `configuration`) |
 | `tealfabric_get_connector_oauth2_required` | Check whether connector requires OAuth2 |
 | `tealfabric_list_integrations` | List integrations or query by action/filter |
 | `tealfabric_create_integration` | Create a new integration |
 | `tealfabric_update_integration` | Update an existing integration |
-| `tealfabric_list_webapps` | List webapps (optional: search, limit) |
+| `tealfabric_execute_integration` | Execute an integration (optional async/data) |
+| `tealfabric_delete_integration` | Delete an integration |
+| `tealfabric_list_webapps` | List webapps (`page` / `items_per_page`, filters) |
 | `tealfabric_get_webapp` | Get one webapp by ID (optional version) |
-| `tealfabric_create_webapp` | Create a new webapp |
-| `tealfabric_update_webapp` | Update webapp (e.g. page_content, name) |
-| `tealfabric_publish_webapp` | Publish a webapp |
+| `tealfabric_create_webapp` | Create webapp (`name`, `type`, `page_content`, `webapp_user_id`) |
+| `tealfabric_update_webapp` | Update webapp (content, auth, public URI, etc.) |
+| `tealfabric_publish_webapp` | Publish a webapp **version** (requires `version`) |
+| `tealfabric_unpublish_webapp` | Unpublish a webapp |
+| `tealfabric_create_webapp_version` | Create a new unpublished webapp version |
+| `tealfabric_delete_webapp` | Delete a webapp |
 | `tealfabric_list_processes` | List ProcessFlow processes |
 | `tealfabric_get_process` | Get one process by ID |
 | `tealfabric_list_process_steps` | List steps of a process |
 | `tealfabric_get_process_step` | Get one process step by step_id |
 | `tealfabric_execute_process` | Execute a process (optional input) |
-| `tealfabric_create_process` | Create a new process (process flow) |
+| `tealfabric_create_process` | Create a new process |
 | `tealfabric_update_process` | Update an existing process |
-| `tealfabric_create_process_step` | Create a new step in a process flow |
+| `tealfabric_delete_process` | Hard-delete a process |
+| `tealfabric_retire_process` | Soft-retire a process (`<retired>` + inactive) |
+| `tealfabric_create_process_step` | Create a new step (`name`/`step_name`, optional `language`) |
 | `tealfabric_update_process_step` | Update an existing process step |
+| `tealfabric_delete_process_step` | Delete a process step |
 | `tealfabric_list_documents` | List documents in a directory |
+| `tealfabric_list_document_tree` | List documents as a tree |
 | `tealfabric_get_document_metadata` | Get file metadata |
+| `tealfabric_read_document_text` | Read UTF-8 text document |
+| `tealfabric_write_document_text` | Write UTF-8 text document |
 | `tealfabric_download_document` | Download a file (returns base64 payload) |
 | `tealfabric_upload_document` | Upload a file (e.g. built package) |
 | `tealfabric_move_document` | Move or rename file/directory |
@@ -89,7 +103,10 @@ Replace:
 
 ## Documentation
 
+- **Release notes (0.2.0):** [docs/RELEASE_NOTES_0.2.0.md](docs/RELEASE_NOTES_0.2.0.md)
+- **Migrating from 0.1.x:** [docs/MIGRATING.md](docs/MIGRATING.md)
 - **Developer guide (setup, tools, API mapping, extending):** [docs/DEVELOPER.md](docs/DEVELOPER.md)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 - **Tealfabric platform docs (WebApps, ProcessFlow, APIs):** [https://tealfabric.io/docs](https://tealfabric.io/docs)
 
 ## Related projects

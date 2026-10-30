@@ -7,3 +7,4 @@ description: Keep Tealfabric API credentials out of source control and logs.
 - Prefer local prompts or local environment variables for secrets.
 - Do not paste API keys into code examples, docs, issues, or commits.
 - When sharing config, replace keys with placeholders like `tf_live_...`.
+- Prefer least-privilege scopes (`webapps.read`, `integrations.execute`, etc.) over `*`.
